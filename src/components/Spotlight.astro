@@ -1,0 +1,81 @@
+---
+interface Props {
+  class?: string;
+  color?: string;
+  size?: string;
+}
+const { class: className = "", color = "rgba(37, 99, 235, 0.35)", size = "400px" } = Astro.props;
+---
+
+<div
+  class:list={["spotlight", className]}
+  data-spotlight
+  style={`--glow-color: ${color}; --glow-size: ${size};`}
+>
+  <div class="spotlight-glow"></div>
+</div>
+
+<style>
+  .spotlight {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .spotlight-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--glow-opacity, 0);
+    transition: opacity 0.3s ease;
+    background: radial-gradient(
+      var(--glow-size) circle at var(--mx, 50%) var(--my, 50%),
+      var(--glow-color),
+      transparent 60%
+    );
+  }
+</style>
+
+<script>
+  function initSpotlights() {
+    if ((window as any).__spotlightBound) return;
+    (window as any).__spotlightBound = true;
+
+    const spots = () =>
+      document.querySelectorAll<HTMLElement>("[data-spotlight]");
+
+    const update = (x: number, y: number) => {
+      spots().forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const inside =
+          x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        el.style.setProperty("--mx", `${x - r.left}px`);
+        el.style.setProperty("--my", `${y - r.top}px`);
+        el.style.setProperty("--glow-opacity", inside ? "1" : "0");
+      });
+    };
+
+    const hide = () =>
+      spots().forEach((el) => el.style.setProperty("--glow-opacity", "0"));
+
+    // Mouse and pen
+    window.addEventListener("pointermove", (e) => {
+      if (e.pointerType === "touch") return; // touch is handled below
+      update(e.clientX, e.clientY);
+    });
+    document.documentElement.addEventListener("pointerleave", hide);
+
+    // Touch: keeps firing while the page scrolls
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (t) update(t.clientX, t.clientY);
+      else hide(); // last finger lifted
+    };
+    window.addEventListener("touchstart", onTouch, { passive: true });
+    window.addEventListener("touchmove", onTouch, { passive: true });
+    window.addEventListener("touchend", onTouch, { passive: true });
+    window.addEventListener("touchcancel", hide, { passive: true });
+  }
+
+  initSpotlights();
+  document.addEventListener("astro:page-load", initSpotlights);
+</script>

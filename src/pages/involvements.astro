@@ -1,0 +1,202 @@
+    ---
+    import type { ImageMetadata } from 'astro';
+    import BaseHead from '../components/BaseHead.astro';
+    import Footer from '../components/Footer.astro';
+    import Header from '../components/Header.astro';
+    import ImageCarousel from '../components/ImageCarousel.astro';
+    import InfoFrame from '../components/InfoFrame.astro';
+    import FloatingContainer from '../components/FloatingContainer.astro';
+    import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+    // Load every involvement photo through astro:assets so each one is optimized.
+    const images = import.meta.glob<{ default: ImageMetadata }>(
+    '../assets/involvements/*.{jpg,jpeg,png,webp}',
+    { eager: true }
+    );
+
+    const img = (file: string) => {
+    const found = images[`../assets/involvements/${file}`];
+    if (!found) throw new Error(`Missing image: ../assets/involvements/${file}`);
+    return found.default;
+    };
+
+    const slides = [
+    {
+        file: 'image1.jpg',
+        caption: 'Volunteer Usher for KIST Inauguration Event',
+        credit: 'Photo by Samuel Nortez',
+    },
+    {
+        file: 'image2.jpg',
+        caption: 'LAmbs Campus Tour for SHS Students',
+        credit: 'Photo by Migy Marasigan',
+    },
+    {
+        file: 'image3.jpg',
+        caption: 'LAmbs Campus Tour Photo Documentation Work',
+        credit: 'Photo by Clarence Gio Napao',
+    },
+    {
+        file: 'image4.jpg',
+        caption: 'Me and my team during my term as Documentations and Publicity Core Officer',
+        credit: 'Photo by Clarisse Navea',
+    },
+    {
+        file: 'image5.jpg',
+        caption: 'LAmbs Campus Tour for SHS Students',
+        credit: 'Photo by Migy Marasigan',
+    },
+    {
+        file: 'image6.jpg',
+        caption: 'Graphics design work for the Artbloc 2025 as part of the Laguna Campus Student Government',
+        credit: 'Photo by Clarence Gio Napao',
+    },
+    {
+        file: 'image7.jpg',
+        caption: 'International Robotics Olympiad 2017 participation during Junior High School',
+    },
+    ].map(({ file, caption, credit }) => ({
+    src: img(file),
+    alt: caption,
+    caption,
+    credit,
+    }));
+
+    const entries = [
+    {
+        title: 'Documentations and Publicity Member',
+        organization: 'DLSU Laguna Lasallian Ambassadors',
+        period: '2024 – Present',
+        location: 'Biñan, Laguna',
+        summary: 'Performed graphics design work and photography documentation for the LAmbs Laguna',
+        highlights: [
+        'Closely assisted the Documentations and Publicity Core with the design and creation of publicity materials.',
+        'Focused on the formulation and design of potential themes for the Frosh Welcoming Program 2025.',
+        ],
+        tags: ['Design', 'Team Organization', 'Time Management'],
+    },
+    {
+        title: 'Documentations and Publicity Core Officer',
+        organization: 'DLSU Laguna Lasallian Ambassadors',
+        period: '2025 – 2026',
+        location: 'Biñan, Laguna',
+        summary: 'Provided guidance and support to aspiring developers.',
+        highlights: [
+        'Led branding, merchandise, and publicity for an annual freshman event with 300+ attendees as one of 5 co-directors, managing 11+ project deliverables.',
+        'Onboarded and guided a 9-member committee across 6+ campus-wide projects and campaigns, delivering materials on 24-hour turnarounds.',
+        'Engaged with Lasallian Ambassadors Manila to co-develop the university-wide LPEP theme and branding.',
+        ],
+        tags: ['Executive Board', 'Team Leadership', 'Team Coordination', 'Project Management', 'Mentoring'],
+    },
+    {
+        title: 'Director for Creatives',
+        organization: 'Laguna Campus Engineering College Government',
+        period: '2025',
+        location: 'Biñan, Laguna',
+        summary: 'Headed the creatives committee for the LCECG under the Laguna Campus Student Government',
+        highlights: [
+        'Led branding, merchandise, and publicity for an annual freshman event with 300+ attendees as one of 5 co-directors, managing 11+ project deliverables.',
+        'Onboarded and guided a 9-member committee across 6+ campus-wide projects and campaigns, delivering materials on 24-hour turnarounds.',
+        'Engaged with Lasallian Ambassadors Manila to co-develop the university-wide LPEP theme and branding.',
+        ],
+        tags: ['Project Management', 'Interpersonal Communication'],
+    },
+    {
+        title: 'Academics Committee Officer',
+        organization: 'DLSU Laguna Association of Computer Engineering Students',
+        period: '2025',
+        location: 'Biñan, Laguna',
+        summary: 'Assisted in the development and compilation of computer engineering review materials.',
+        tags: ['Organization'],
+    },
+    {
+        title: 'Robotics Team Member',
+        organization: 'Letran-Calamba Robotics Team',
+        period: '2017 – 2019',
+        location: 'Calamba, Laguna',
+        summary:
+        'Committed to robotics, programming, and hardware training, and competed and awarded in both national and international robotics competitions',
+        highlights: [
+        'International Robotics Olympiad 2017 & 2018',
+        'National Robotics Competition 2018',
+        ],
+        tags: ['Robotics', 'Programming', 'Embedded Systems', 'Research'],
+    },
+    ];
+    ---
+
+    <!doctype html>
+    <html lang="en">
+    <head>
+        <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    </head>
+    <body>
+        <Header />
+
+        <div class="content-container">
+        <ImageCarousel height="100vh" eager label="Project photos" slides={slides} />
+
+        <InfoFrame
+            heading="My Involvements"
+            subheading="Student and Community Engagement"
+            entries={entries}
+        />
+        </div>
+
+        <div class="others-item">
+        <FloatingContainer
+            header="Awards & Publications"
+            centered={true}
+        >
+            <div slot="content">
+            <ul>
+                <li>
+                    <strong>Accepted Paper, HNICEM 2026:</strong> <em>“Development and Qualitative Analysis of a Vision-Based Virtual Mouse Controller Using Local Binary Features and Kinematic Gesture Recognition”</em> A. Pakzad, A. Pakzad, C. Domingo, <strong>C. G. Napao</strong>, A. Rodriguez, J. J. Abayan.
+                </li>
+                <li>
+                <strong>Gawad Lasalyano,</strong> De La Salle University: Service Merit Award | 2026
+                </li>
+            </ul>
+            </div>
+        </FloatingContainer>
+        </div>
+
+        <Footer />
+    </body>
+    </html>
+
+    <style>
+
+    body{
+        background-color: #e8ecf1;;
+    }
+
+    .others-item {
+        width: 100%;
+        max-width: 720px;
+        margin-inline: auto;
+        box-sizing: border-box;
+        transition:
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.35s ease;
+        will-change: transform;
+    }
+
+    .others-item:hover {
+        transform: scale(1.02);
+        box-shadow: 0 30px 60px -12px rgba(15, 23, 42, 0.4);
+    }
+
+    .others-item:(p){
+        text-align: justify;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .others-item {
+        transition: none;
+        }
+        .others-item:hover {
+        transform: none;
+        }
+    }
+    </style>

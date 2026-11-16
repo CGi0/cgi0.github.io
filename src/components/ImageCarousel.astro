@@ -1,0 +1,473 @@
+---
+/**
+ * ImageCarousel — a full-width horizontal carousel of fixed-height image frames.
+ * Each slide behaves like the old ImageFrame (cover-fit image, optional caption + credit).
+ *
+ * Usage:
+ *   <ImageCarousel
+ *     height="100vh"
+ *     eager
+ *     label="Project photos"
+ *     slides={[
+ *       { src: hero, alt: "Site at dawn", caption: "Manila, 2025", credit: "J. Cruz" },
+ *       { src: "/photos/site.jpg", alt: "Foundation work", position: "center 30%" },
+ *     ]}
+ *   />
+ *
+ * `height` accepts any CSS length ("100vh", "100dvh", "80svh", "42rem")
+ * or a number, which is treated as pixels.
+ *
+ * Navigation: swipe / trackpad scroll, prev/next buttons, segment indicators,
+ * and ArrowLeft / ArrowRight / Home / End when the carousel has focus.
+ */
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Slide {
+  /** Imported image (optimized by astro:assets) or a URL / public path string. */
+  src: ImageMetadata | string;
+  alt: string;
+  /** CSS object-position for this slide, e.g. "center 30%". Overrides the carousel default. */
+  position?: string;
+  /** Short text shown at the bottom-left of the slide. */
+  caption?: string;
+  /** Photo credit, shown at the bottom-right. */
+  credit?: string;
+}
+
+interface Props {
+  slides: Slide[];
+  /** Frame height. Default fills the viewport. */
+  height?: string | number;
+  /** Default CSS object-position for all slides. */
+  position?: string;
+  /** Set true when the carousel is the first thing on the page so slide 1 loads immediately. */
+  eager?: boolean;
+  /** Accessible name for the carousel region. */
+  label?: string;
+  id?: string;
+  class?: string;
+}
+
+const {
+  slides,
+  height = "100vh",
+  position = "center",
+  eager = false,
+  label = "Image carousel",
+  id,
+  class: className,
+} = Astro.props;
+
+const frameHeight = typeof height === "number" ? `${height}px` : height;
+const multiple = slides.length > 1;
+---
+
+<image-carousel
+  id={id}
+  class:list={["carousel", className]}
+  style={`--frame-height: ${frameHeight}; --frame-position: ${position};`}
+>
+  <section
+    class="viewport"
+    role="region"
+    aria-roledescription="carousel"
+    aria-label={label}
+  >
+    <ul class="track" tabindex={multiple ? 0 : undefined} data-track>
+      {
+        slides.map((slide, i) => {
+          const hasText = Boolean(slide.caption || slide.credit);
+          const isOptimized = typeof slide.src !== "string";
+          const priority = eager && i === 0;
+          return (
+            <li
+              class:list={["slide", { "has-text": hasText }]}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${slides.length}`}
+              style={slide.position ? `--frame-position: ${slide.position};` : undefined}
+              data-slide
+            >
+              {isOptimized ? (
+                <Image
+                  src={slide.src as ImageMetadata}
+                  alt={slide.alt}
+                  widths={[640, 1024, 1600, 2400]}
+                  sizes="100vw"
+                  loading={priority ? "eager" : "lazy"}
+                  decoding={priority ? "sync" : "async"}
+                  draggable="false"
+                />
+              ) : (
+                <img
+                  src={slide.src as string}
+                  alt={slide.alt}
+                  loading={priority ? "eager" : "lazy"}
+                  decoding={priority ? "sync" : "async"}
+                  draggable="false"
+                />
+              )}
+
+              {hasText && (
+                <div class="text">
+                  {slide.caption && <span class="caption">{slide.caption}</span>}
+                  {slide.credit && <span class="credit">{slide.credit}</span>}
+                </div>
+              )}
+            </li>
+          );
+        })
+      }
+    </ul>
+
+    {
+      multiple && (
+        <>
+          <button
+            type="button"
+            class="arrow prev"
+            aria-label="Previous slide"
+            data-prev
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="arrow next"
+            aria-label="Next slide"
+            data-next
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <div class="dots">
+            {slides.map((_, i) => (
+              <button
+                type="button"
+                class="dot"
+                aria-label={`Go to slide ${i + 1}`}
+                data-dot={i}
+              />
+            ))}
+          </div>
+
+          <p class="sr-only" aria-live="polite" data-status />
+        </>
+      )
+    }
+  </section>
+</image-carousel>
+
+<style>
+  .carousel {
+    display: block;
+    position: relative;
+    width: 100%;
+    background: var(--frame-bg, #1c2430);
+  }
+
+  .viewport {
+    position: relative;
+    width: 100%;
+    height: var(--frame-height, 100vh);
+    overflow: hidden;
+  }
+
+  .track {
+    display: flex;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .track::-webkit-scrollbar {
+    display: none;
+  }
+  .track:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -6px;
+  }
+
+  .slide {
+    position: relative;
+    flex: 0 0 100%;
+    height: 100%;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  /* Astro's <Image> output isn't touched by scoped styles, so target it globally within the slide. */
+  .slide :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--frame-position, center);
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* The gradient only exists to keep the caption readable, so it only appears with text. */
+  .has-text::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 38%;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.55), transparent);
+    pointer-events: none;
+  }
+
+  .text {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    /* Extra bottom space keeps text clear of the indicator bar. */
+    padding: clamp(1rem, 3vw, 2.5rem);
+    padding-bottom: calc(clamp(1rem, 3vw, 2.5rem) + 1.25rem);
+    color: #fff;
+    font-family: var(--frame-font, system-ui, sans-serif);
+    font-size: clamp(0.9rem, 1.2vw, 1.05rem);
+    line-height: 1.4;
+  }
+
+  .caption {
+    max-width: 48ch;
+  }
+
+  .credit {
+    margin-left: auto;
+    font-size: 0.8em;
+    opacity: 0.8;
+    text-align: right;
+  }
+
+  /* Arrows */
+  .arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 0.5);
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.35);
+    color: #fff;
+    cursor: pointer;
+    transform: translateY(-50%);
+    backdrop-filter: blur(6px);
+    transition:
+      background-color 0.15s,
+      opacity 0.15s;
+  }
+  .arrow.prev {
+    left: clamp(0.75rem, 2vw, 1.75rem);
+  }
+  .arrow.next {
+    right: clamp(0.75rem, 2vw, 1.75rem);
+  }
+  .arrow svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .arrow:hover:not(:disabled) {
+    background: rgb(0 0 0 / 0.6);
+  }
+  .arrow:focus-visible,
+  .dot:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+  }
+  .arrow:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  /* Segment indicators */
+  .dots {
+    position: absolute;
+    inset: auto 0 clamp(0.75rem, 2vw, 1.25rem) 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    padding-inline: 1rem;
+    pointer-events: none;
+  }
+  .dot {
+    position: relative;
+    width: clamp(1.5rem, 4vw, 3rem);
+    height: 1.5rem; /* tall hit area, thin visible bar below */
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .dot::before {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 3px;
+    border-radius: 2px;
+    background: rgb(255 255 255 / 0.4);
+    transform: translateY(-50%);
+    transition: background-color 0.2s;
+  }
+  .dot[aria-current="true"]::before {
+    background: #fff;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Touch devices swipe; hide arrows there to keep the photo clear. */
+  @media (hover: none) and (pointer: coarse) {
+    .arrow {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  class ImageCarousel extends HTMLElement {
+    private track!: HTMLElement;
+    private slides: HTMLElement[] = [];
+    private dots: HTMLButtonElement[] = [];
+    private prev: HTMLButtonElement | null = null;
+    private next: HTMLButtonElement | null = null;
+    private status: HTMLElement | null = null;
+    private index = 0;
+    private frame = 0;
+    private ro?: ResizeObserver;
+
+    connectedCallback() {
+      this.track = this.querySelector<HTMLElement>("[data-track]")!;
+      this.slides = Array.from(this.querySelectorAll<HTMLElement>("[data-slide]"));
+      this.dots = Array.from(this.querySelectorAll<HTMLButtonElement>("[data-dot]"));
+      this.prev = this.querySelector<HTMLButtonElement>("[data-prev]");
+      this.next = this.querySelector<HTMLButtonElement>("[data-next]");
+      this.status = this.querySelector<HTMLElement>("[data-status]");
+      if (!this.track || this.slides.length < 2) return;
+
+      this.prev?.addEventListener("click", () => this.goTo(this.index - 1));
+      this.next?.addEventListener("click", () => this.goTo(this.index + 1));
+      this.dots.forEach((dot, i) => dot.addEventListener("click", () => this.goTo(i)));
+
+      this.track.addEventListener("scroll", this.onScroll, { passive: true });
+      this.track.addEventListener("keydown", this.onKey);
+
+      // Keep the current slide aligned if the width changes (rotation, resize).
+      this.ro = new ResizeObserver(() => this.goTo(this.index, true));
+      this.ro.observe(this.track);
+
+      this.update();
+    }
+
+    disconnectedCallback() {
+      cancelAnimationFrame(this.frame);
+      this.ro?.disconnect();
+      this.track?.removeEventListener("scroll", this.onScroll);
+      this.track?.removeEventListener("keydown", this.onKey);
+    }
+
+    private reduceMotion() {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    private goTo(i: number, instant = false) {
+      const clamped = Math.max(0, Math.min(this.slides.length - 1, i));
+      this.track.scrollTo({
+        left: clamped * this.track.clientWidth,
+        behavior: instant || this.reduceMotion() ? "auto" : "smooth",
+      });
+      if (instant) {
+        this.index = clamped;
+        this.update();
+      }
+    }
+
+    private onScroll = () => {
+      cancelAnimationFrame(this.frame);
+      this.frame = requestAnimationFrame(() => {
+        const width = this.track.clientWidth || 1;
+        const i = Math.round(this.track.scrollLeft / width);
+        if (i !== this.index) {
+          this.index = i;
+          this.update(true);
+        }
+      });
+    };
+
+    private onKey = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case "ArrowLeft":
+          e.preventDefault();
+          this.goTo(this.index - 1);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          this.goTo(this.index + 1);
+          break;
+        case "Home":
+          e.preventDefault();
+          this.goTo(0);
+          break;
+        case "End":
+          e.preventDefault();
+          this.goTo(this.slides.length - 1);
+          break;
+      }
+    };
+
+    private update(announce = false) {
+      const last = this.slides.length - 1;
+      if (this.prev) this.prev.disabled = this.index <= 0;
+      if (this.next) this.next.disabled = this.index >= last;
+      this.dots.forEach((dot, i) =>
+        dot.setAttribute("aria-current", String(i === this.index)),
+      );
+      // Slides off-screen shouldn't be reachable by assistive tech as "current".
+      this.slides.forEach((s, i) => s.toggleAttribute("data-active", i === this.index));
+      if (announce && this.status) {
+        this.status.textContent = `Slide ${this.index + 1} of ${this.slides.length}`;
+      }
+    }
+  }
+
+  if (!customElements.get("image-carousel")) {
+    customElements.define("image-carousel", ImageCarousel);
+  }
+</script>

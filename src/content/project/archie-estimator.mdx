@@ -1,0 +1,146 @@
+---
+title: "Archie Estimator: Turning Fit-Out Spreadsheets into Client-Ready Quotations"
+description: "A Java/JavaFX desktop app that pairs a reusable SQLite cost book with a spreadsheet-style estimation table and exports PDF quotations, built for Archi Magnet, Inc."
+pubDate: "2025-04-14"
+heroImage: '../../assets/archie-estimator/image6.png'
+---
+
+## What I Learned Building Archie Estimator
+
+For my Software Design course (LBYCPD2) at De La Salle University – Laguna Campus, I led the research and requirements work on **Archie Estimator**, a Java desktop app for building construction and fit-out cost estimates. We built it with two teammates, for a real client: **Archi Magnet, Inc.**
+
+This post is a look back at the research, the decisions we made, and what I would tell someone starting a similar client project.
+
+Source code: [github.com/CGi0/ArchieEstimator](https://github.com/CGi0/ArchieEstimator)
+
+## Starting With the Problem, Not the Code
+
+My first job was to understand how fit-out estimation actually works before we wrote anything. The pattern I kept seeing was spreadsheets:
+
+- The same item gets priced differently from one estimate to the next.
+- Item, subsection, section, and VAT totals are easy to break with a stray formula.
+- Hours go into reformatting the quotation instead of getting the numbers right.
+
+So the goal was not "build an estimator." It was narrower: **keep prices in one place, calculate every total automatically, and format the quotation without manual work.** Every requirement I wrote traced back to one of those three things.
+
+## Turning Research Into a Specification
+
+I documented what we learned in an IEEE-style Software Requirements Specification, version 1.0, dated February 27, 2025. It defined seven feature areas, each with a priority:
+
+| Feature | Priority |
+| --- | --- |
+| Cost items | High |
+| Cost book system | High |
+| Estimation table | High |
+| File load and save (JSON) | Medium |
+| Additional estimation details | Medium |
+| Document preview and export | Medium |
+| Help menu | Low |
+
+The product flow I sketched in the SRS is the backbone of the whole app:
+
+```text
+Create project → Manage cost book → Import cost items → Set quantities/prices
+      → Auto-calculate totals → Export formatted PDF quotation
+```
+
+I also drew low-fidelity mockups for the main table view, cost book, cost item editor, and document preview. Doing the UI on paper first meant my teammates and I argued about layout *before* anyone wrote FXML, which was far cheaper than arguing about it afterward.
+
+## The Core Idea: A Cost Book Separate From the Estimate
+
+The most important design decision came out of the research: **the cost book and the estimate are two different things.**
+
+The cost book is a library of reusable templates, organized as group → category → cost item. Each item stores a name, notes, unit, material unit cost, and labor unit cost. An estimate pulls *instances* of those items into a tabbed table, and you can change quantity and costs per estimate **without touching the cost book**.
+
+That gives the client consistent prices by default, with the flexibility to deviate on a single project. It was the part of the SRS I was most confident about, and it survived into the final build almost unchanged.
+
+## What Got Built
+
+- **Cost book:** SQLite-backed, with add, edit, delete, keyword search, and moving categories between groups.
+- **Estimation table:** tabbed sections (General Requirements, Architectural, Electrical, and so on) with subsections, live item, subsection, and overall totals, a Summary tab, and a configurable VAT rate.
+- **Documents:** settings for client, project, payment terms, exclusions, remarks, and conforme details, then preview and PDF export.
+- **Persistence:** estimates save and load as `.json`, so they are easy to share and back up.
+
+### Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Language | Java 22 |
+| UI | JavaFX 22 (FXML) |
+| Database | SQLite via `sqlite-jdbc`, pooled with HikariCP |
+| Data access | JDBC `PreparedStatement`s, DAO pattern |
+| Persistence | Jackson (JSON) |
+| PDF generation | JasperReports (`RevisedInvoice.jrxml`) |
+| Logging | Log4j 2 / SLF4J |
+| Build | Maven |
+
+### Architecture
+
+I wanted the layers kept separate so each could change without breaking the others:
+
+```text
+JavaFX controllers (FXML views)
+        │
+  service layer   → business logic and table calculations
+        │
+    DAO layer     → CostBookDAO, CostCategoryDAO, CostGroupDAO
+        │
+ SQLite (HikariCP pool)
+
+Jackson serializers  → estimates as JSON
+Jasper adapter       → PDF quotation export
+```
+
+The database is a normalized three-table schema (`CostGroups`, `CostCategories`, `CostBook`) with foreign keys. Two details I care about: all queries are parameterized, and deleting a group or category runs inside a **transaction** with commit and rollback, so the cost book is never left half-deleted.
+
+## Where Reality Disagreed With My Spec
+
+This is the part I find most useful to share. A requirements document is a snapshot, and parts of mine did not survive contact with implementation:
+
+| Topic | What I specified | What shipped |
+| --- | --- | --- |
+| PDF generation | iText7 | JasperReports with a `.jrxml` template |
+| Java version | Java 8 or later | Java 22 with JavaFX 22 |
+| Cost book database | MySQL/PostgreSQL named as constraints, SQLite in the feature section | Local SQLite |
+| Target platforms | Windows 2000 through Windows 11 | Windows-focused, any platform with JDK 22 and Maven |
+
+Looking back, the SRS even contradicted itself on the database, naming MySQL and PostgreSQL in one section and SQLite in another. A desktop tool used by one business with locally stored data did not need a database server, and SQLite was the right call. I should have caught that inconsistency in review rather than letting the code settle it.
+
+The PDF also grew beyond the spec. The final quotation has separate material, labor, and combined unit cost columns, better fonts, bank details, validity, and warranty terms, because the client's real quotations needed them.
+
+## Lessons I'm Taking Away
+
+1. **Specify the problem tightly.** "Consistent prices, automatic totals, automatic formatting" gave us a test for every feature request.
+2. **Mock up the UI early.** Paper layouts caught disagreements while they were still cheap to fix.
+3. **Treat the SRS as a living document.** Mine drifted from the code in several places. Next time I will schedule a reconciliation pass.
+4. **Pick the smallest infrastructure that fits.** SQLite plus JSON files beat a database server for a single-user desktop tool.
+5. **Scope honestly.** The SRS promised tile and paint quantity calculators, but they are not listed among the repository's features. I would rather cut a promise in the document than leave it quietly unfulfilled.
+
+## Try It Yourself
+
+You need JDK 22+ and Maven 3.9+ (or the included wrapper).
+
+```bash
+git clone https://github.com/CGi0/ArchieEstimator.git
+cd ArchieEstimator
+./mvnw javafx:run          # Windows: mvnw.cmd javafx:run
+```
+
+To build a runnable JAR:
+
+```bash
+./mvnw clean package
+java -jar target/ArchieEstimator-1.0-SNAPSHOT.jar
+```
+
+The app reads and writes `default.sqlite` in the working directory. A starter database with sample data is included. Delete it to start with an empty cost book.
+
+## What's Next
+
+Excel/CSV export is still an open item in the SRS's To-Be-Determined list. Tracking project progress against an estimate is another idea we flagged for a future version.
+
+## Credits
+
+This was a team effort. **Clarence Gio M. Napao** handled database design and architecture, **Lawrence James V. Arroyo** handled front-end design, and **Rojan Moirae N. Binalla** handled PDF generation and JSON persistence. 
+
+Thank you to **Sir Neil Oliver Velasco** for guidance throughout, to Archi Magnet, Inc. for being a real client with real requirements, and to De La Salle University – Laguna Campus for the environment to build this in.

@@ -1,0 +1,152 @@
+    ---
+    import BaseHead from '../components/BaseHead.astro';
+    import Footer from '../components/Footer.astro';
+    import Header from '../components/Header.astro';
+    import FloatingContainer from '../components/FloatingContainer.astro';
+    import Spotlight from "../components/Spotlight.astro";
+    import { Image } from 'astro:assets';
+
+    import logoDLSU from '../assets/DLSU-logo.png';
+    import logoLetran from '../assets/logoLetran.webp';
+
+    import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+    ---
+
+    <!doctype html>
+    <html lang="en">
+    <head>
+        <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    </head>
+    <body>
+        <Header />
+        <main class="references-page">
+        <div class="glow-layer" aria-hidden="true">
+                <Spotlight color="rgba(37, 99, 235, 0.35)" size="400px" />
+        </div>
+        <div class="background-container">
+            <div class="references-header">
+                <h1>Character References</h1>
+            </div>
+
+            <div class="references-item">
+                <FloatingContainer
+                header="Dr. Alexander C. Abad"
+                subHeader1="De La Salle University"
+                subHeader2="Department of Electronics, Computer, and Electrical Engineering • Manila, Philippines"
+                centered={true}
+                >
+                    <div slot="content">
+                        <p><strong>Contact Email:</strong> <a href="mailto:alexander.abad@dlsu.edu.ph">alexander.abad@dlsu.edu.ph</a></p>
+                    </div>
+                </FloatingContainer>
+            </div>
+            <div class="references-item">
+                <FloatingContainer
+                header="Engr. Jared Jan Abayan"
+                subHeader1="De La Salle University"
+                subHeader2="Department of Electronics, Computer, and Electrical Engineering • Manila, Philippines"
+                centered={true}
+                >
+                    <div slot="content">
+                        <p><strong>Contact Email:</strong> <a href="mailto:jared.abayan@dlsu.edu.ph">jared.abayan@dlsu.edu.ph</a></ p>
+                    </div>
+                </FloatingContainer>
+            </div>
+            <div class="references-item">
+                <FloatingContainer
+                header="Ms. Lounelle Godinez"
+                subHeader1="De La Salle University"
+                subHeader2="Coordinator for Student Development and Formation • Biñan, Philippines"
+                centered={true}
+                >
+                    <div slot="content">
+                        <p><strong>Contact Email:</strong> <a href="mailto:lounelle.godinez@dlsu.edu.ph">lounelle.godinez@dlsu.edu.ph</a></p>
+                    </div>
+                </FloatingContainer>
+            </div>
+        </div>
+        </main>
+        <Footer />
+    </body>
+    </html>
+
+    <style>
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: #ffffff;
+    }
+
+    /* Overrides global.css's 720px width and auto margin on <main> */
+    main.references-page {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #0f172a;
+    }
+
+    .background-container {
+        z-index: 1;
+        width: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        padding: 3rem 1.5rem;
+    }
+
+    .glow-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    }
+
+    .glow-layer :global(.spotlight) {
+        height: 100%;
+    }
+
+    .references-header {
+        text-align: center;
+    }
+
+    .references-header h1 {
+        margin: 0 0 0.25rem;
+        color: #ffffff;
+    }
+
+    .references-item {
+        width: 100%;
+        max-width: 720px;
+        box-sizing: border-box;
+
+        transition:
+		transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+		box-shadow 0.35s ease;
+		will-change: transform;
+    }
+
+    .references-item:hover {
+		transform: scale(1.02);
+		box-shadow: 0 30px 60px -12px rgba(15, 23, 42, 0.4);
+	}
+
+    :global(footer) {
+        width: 100%;
+        box-sizing: border-box;
+        background: #ffffff;
+    }
+    </style>
